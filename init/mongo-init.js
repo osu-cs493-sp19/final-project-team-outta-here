@@ -26,7 +26,16 @@ db.courses.insertMany([
     number: 1,
     title: "Cloud Software Computing",
     instructor: "Rob Hess",
-    students: []
+    students: [{
+      "id": "abc123",
+      "name": "Jane Doe",
+      "email": "janeDoe@oregonstate.edu"
+    },
+    {
+    "id": "decf654",
+    "name": "John Doe",
+    "email": "johnathanDoe@oregonstate.edu" 
+    }]
   },
   {
     id: 2,
