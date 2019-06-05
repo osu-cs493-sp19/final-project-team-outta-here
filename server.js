@@ -3,7 +3,7 @@ const morgan = require('morgan');
 const bodyParser = require('body-parser');
 
 const api = require('./api');
-const { connectToDB } = require('./lib/mongo');
+const { connectToDB } = require('./lib/mongo')
 
 const app = express();
 const port = process.env.PORT || 8000;
