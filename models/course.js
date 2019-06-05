@@ -22,7 +22,7 @@ exports.getCoursesPage = async function (page) {
     const collection = db.collection('courses');
     const count = await collection.countDocuments();
 
-    const pageSize = 2;
+    const pageSize = 4;
     const lastPage = Math.ceil(count / pageSize);
     page = page < 1 ? 1 : page;
     page = page > lastPage ? lastPage : page;
@@ -43,15 +43,10 @@ exports.getCoursesPage = async function (page) {
     };
 };
 
-exports.getCourseByID = async function (id) {
-    const db = getDBReference();
-    const collection = db.collection('courses');
-    if (!ObjectId.isValid(id)) {
-        return null;
-    } else {
-        const results = await collection
-            .find({ _id: new ObjectId(id) })
-            .toArray();
-        return results[0];
-    }
+exports.insertNewCourse = async function (course) {
+  course = extractValidFields(course, CourseSchema);
+  const db = getDBReference(); 
+  const collection = db.collection('courses');
+  const result = await collection.insertOne(course);
+  return result.insertedId;
 };
