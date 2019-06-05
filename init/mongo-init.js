@@ -27,6 +27,30 @@ db.courses.insertMany([
     title: "Cloud Software Computing",
     instructor: "Rob Hess",
     students: []
+  },
+  {
+    id: 2,
+    subjectCode: "CS 161",
+    number: 2,
+    title: "Introduction to CS I",
+    instructor: "Rob Hess",
+    students: []
+  },
+  {
+    id: 3,
+    subjectCode: "CS 271",
+    number: 3,
+    title: "Introduction to Assembly Language",
+    instructor: "Rob Hess",
+    students: []
+  },
+  {
+    id: 4,
+    subjectCode: "CS 290",
+    number: 4,
+    title: "Introduction to Web Programming",
+    instructor: "Rob Hess",
+    students: []
   }
 ]);
 

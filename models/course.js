@@ -13,7 +13,7 @@ exports.getCoursesPage = async function (page) {
     const collection = db.collection('courses');
     const count = await collection.countDocuments();
 
-    const pageSize = 10;
+    const pageSize = 2;
     const lastPage = Math.ceil(count / pageSize);
     page = page < 1 ? 1 : page;
     page = page > lastPage ? lastPage : page;
