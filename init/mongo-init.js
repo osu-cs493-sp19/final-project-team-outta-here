@@ -23,7 +23,7 @@ db.courses.insertMany([
   {
     id: 1,
     subjectCode: "CS 493",
-    number: 1,
+    number: 493,
     title: "Cloud Software Computing",
     instructor: "Rob Hess",
     students: [{
@@ -40,7 +40,7 @@ db.courses.insertMany([
   {
     id: 2,
     subjectCode: "CS 161",
-    number: 2,
+    number: 161,
     title: "Introduction to CS I",
     instructor: "Rob Hess",
     students: []
@@ -48,7 +48,7 @@ db.courses.insertMany([
   {
     id: 3,
     subjectCode: "CS 271",
-    number: 3,
+    number: 271,
     title: "Introduction to Assembly Language",
     instructor: "Rob Hess",
     students: []
@@ -56,7 +56,7 @@ db.courses.insertMany([
   {
     id: 4,
     subjectCode: "CS 290",
-    number: 4,
+    number: 290,
     title: "Introduction to Web Programming",
     instructor: "Rob Hess",
     students: []

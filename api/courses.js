@@ -1,12 +1,18 @@
 /*
  * API Subroute for /courses 
  */
-
 const router = require('express').Router();
-const { getCoursesPage,
-        getCourseByID } = require('../models/course');
+const { CourseSchema,
+        getCoursesPage,
+        getCourseByID,
+        insertNewCourse } = require('../models/course');
 const stringify = require('csv-stringify');
 
+const { validateAgainstSchema } = require('../lib/validation');
+
+/* 
+ * Route to return paginated list of courses 
+ */
 router.get('/', async (req, res) => {
   try {
     const coursesPage = await getCoursesPage(parseInt(req.query.page) || 1);
@@ -29,8 +35,7 @@ router.get('/', async (req, res) => {
     });
   }
 });
-
-
+  
 /*
  * Route to fetch info about a specific course.
  */
@@ -78,6 +83,33 @@ router.get('/:id/roster', async (req, res, next) => {
     console.error(err);
     res.status(500).send({
       error: "Unable to fetch course.  Please try again later."
+    });
+  }
+});
+
+/*
+ * Route to create new courses 
+ */
+router.post('/', async (req, res) => {
+  if (validateAgainstSchema(req.body, CourseSchema)) {
+    try {
+      const id = await insertNewCourse(req.body);
+      res.status(200).send({
+        id: id,
+	links: {
+	  course: `/courses/${id}`
+	}
+      });
+    } catch (err) {
+      console.error(errr);
+      res.status(500).send({
+        error: "Error inserting course into DB. Try again later. "
+      });
+    }
+  }
+  else {
+    res.status(400).send({
+      error: "Request body is not a valid course object. "
     });
   }
 });
