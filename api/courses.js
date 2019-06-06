@@ -5,7 +5,8 @@ const router = require('express').Router();
 const { CourseSchema,
         getCoursesPage,
         getCourseByID,
-        insertNewCourse } = require('../models/course');
+        insertNewCourse,
+        replaceCourseById } = require('../models/course');
 const stringify = require('csv-stringify');
 
 
@@ -158,6 +159,34 @@ router.post('/', async (req, res) => {
     res.status(400).send({
       error: "Request body is not a valid course object. "
     });
+  }
+});
+
+/* 
+ * Route to edit existing course 
+ */
+router.put('/', async (req, res) => {
+  // Implement user authentication later 
+  if (validateAgainstSchema(req.body, CourseSchema)) {
+    try {
+      const id = parseInt(req.params.id);
+      const updateSuccessful = await replaceCourseById(id, req.body);
+      if (updateSuccessful) {
+	res.status(200).send({
+	  links: {
+	    course: `/courses/${id}`
+	  }
+	});
+      }
+      else {
+	next();
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).send({
+        error: "Unable to updat specified course. Try again later. "
+      });
+    }
   }
 });
 

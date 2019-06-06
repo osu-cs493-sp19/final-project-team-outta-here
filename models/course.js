@@ -43,14 +43,6 @@ exports.getCoursesPage = async function (page) {
     };
 };
 
-exports.insertNewCourse = async function (course) {
-  course = extractValidFields(course, CourseSchema);
-  const db = getDBReference(); 
-  const collection = db.collection('courses');
-  const result = await collection.insertOne(course);
-  return result.insertedId;
-};
-
 exports.getCourseByID = async function (id) {
     const db = getDBReference();
     const collection = db.collection('courses');
@@ -63,3 +55,22 @@ exports.getCourseByID = async function (id) {
         return results[0];
     }
 };
+
+exports.insertNewCourse = async function (course) {
+  course = extractValidFields(course, CourseSchema);
+  const db = getDBReference(); 
+  const collection = db.collection('courses');
+  const result = await collection.insertOne(course);
+  return result.insertedId;
+};
+
+exports.replaceCourseById = async function (id, course) {
+  course = extractValidFields(course, CourseSchema);
+  const db = getDBReference();
+  const collection = db.collection('courses');
+  const result = await collection.replaceOne(
+    { id: id }
+  );
+  return result.matchedCount > 0;
+};
+   
