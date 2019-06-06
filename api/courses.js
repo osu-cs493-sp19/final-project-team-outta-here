@@ -8,6 +8,7 @@ const { CourseSchema,
         insertNewCourse } = require('../models/course');
 const stringify = require('csv-stringify');
 
+
 const { validateAgainstSchema } = require('../lib/validation');
 
 /* 
@@ -76,6 +77,52 @@ router.get('/:id/roster', async (req, res, next) => {
       // since res is an abstraction over node http's response object which supports "streams"
       stringify(roster, { header: true })
         .pipe(res);
+    } else {
+      next();
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
+      error: "Unable to fetch course.  Please try again later."
+    });
+  }
+});
+
+
+/*
+ * Route to get list of students
+ */
+router.get('/:id/students', async (req, res, next) => {
+  try {
+    const course = await getCourseByID(req.params.id);
+    if (course) {
+      var students = course.students;
+      const studentIDs = students.map(students => students.id);
+      res.status(200).send({
+        studentIds: studentIDs
+      });
+    } else {
+      next();
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
+      error: "Unable to fetch course.  Please try again later."
+    });
+  }
+});
+
+/*
+ * Route to get list of assignments
+ */
+router.get('/:id/assignments', async (req, res, next) => {
+  try {
+    const course = await getCourseByID(req.params.id);
+    if (course) {
+      var assignments = course.assignments;
+      res.status(200).send({
+        assignmentIDs: assignments
+      });
     } else {
       next();
     }
