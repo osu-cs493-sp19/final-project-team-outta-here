@@ -35,7 +35,10 @@ db.courses.insertMany([
     "id": "decf654",
     "name": "John Doe",
     "email": "johnathanDoe@oregonstate.edu" 
-    }]
+    }],
+    assignments: ["asdfa12",
+    "ccaweda3"
+    ]
   },
   {
     id: 2,
@@ -43,7 +46,8 @@ db.courses.insertMany([
     number: 161,
     title: "Introduction to CS I",
     instructor: "Rob Hess",
-    students: []
+    students: [],
+    assignments: []
   },
   {
     id: 3,
@@ -51,7 +55,8 @@ db.courses.insertMany([
     number: 271,
     title: "Introduction to Assembly Language",
     instructor: "Rob Hess",
-    students: []
+    students: [],
+    assignments: []
   },
   {
     id: 4,
@@ -59,7 +64,8 @@ db.courses.insertMany([
     number: 290,
     title: "Introduction to Web Programming",
     instructor: "Rob Hess",
-    students: []
+    students: [],
+    assignments: []
   }
 ]);
 
