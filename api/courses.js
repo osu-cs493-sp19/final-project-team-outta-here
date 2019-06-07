@@ -6,7 +6,8 @@ const { CourseSchema,
         getCoursesPage,
         getCourseByID,
         insertNewCourse,
-        replaceCourseById } = require('../models/course');
+        replaceCourseById,
+        deleteCourseById } = require('../models/course');
 const stringify = require('csv-stringify');
 
 
@@ -190,6 +191,23 @@ router.put('/:id', async (req, res, next) => {
       });
     }
   }
+});
+
+/* 
+ * Route to de;ete existing course 
+ */
+router.delete('/:id', async (req, res, next) => {
+  const id = req.params.id;
+  //todo: validation
+  const deleteSuccessful = await deleteCourseById(id);
+  if(deleteSuccessful){
+    res.status(204).send();
+  }else{
+    res.status(500).send({
+      error: "Unable to delete specified course. Try again later. "
+    });
+  }
+
 });
 
 module.exports = router;
