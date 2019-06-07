@@ -165,11 +165,12 @@ router.post('/', async (req, res) => {
 /* 
  * Route to edit existing course 
  */
-router.put('/', async (req, res) => {
+router.put('/:id', async (req, res, next) => {
   // Implement user authentication later 
   if (validateAgainstSchema(req.body, CourseSchema)) {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
+      console.log("id:", id);
       const updateSuccessful = await replaceCourseById(id, req.body);
       if (updateSuccessful) {
 	res.status(200).send({
@@ -179,12 +180,13 @@ router.put('/', async (req, res) => {
 	});
       }
       else {
+	console.log("updateSuccessful failed, next()");
 	next();
       }
     } catch (err) {
       console.error(err);
       res.status(500).send({
-        error: "Unable to updat specified course. Try again later. "
+        error: "Unable to update specified course. Try again later. "
       });
     }
   }

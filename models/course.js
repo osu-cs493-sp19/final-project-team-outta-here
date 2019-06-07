@@ -69,7 +69,8 @@ exports.replaceCourseById = async function (id, course) {
   const db = getDBReference();
   const collection = db.collection('courses');
   const result = await collection.replaceOne(
-    { id: id }
+    { _id: new ObjectId(id) },
+    course
   );
   return result.matchedCount > 0;
 };
