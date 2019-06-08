@@ -75,3 +75,11 @@ exports.replaceCourseById = async function (id, course) {
   return result.matchedCount > 0;
 };
    
+exports.deleteCourseById = async function (id){
+  const db = getDBReference();
+  const collection = db.collection('courses');
+  const result = await collection.deleteOne({
+    _id: new ObjectId(id)
+  });
+  return result.deletedCount > 0;
+}
