@@ -37,9 +37,8 @@ exports.getCoursesPage = async function (page) {
   // console.log("results: ", results);
     //loop through each element to remove students and assignments... they're not supposed to be in the response
     for(var i = 0; i < results.length; i++){
-      console.log("results: ", results[i]);
-      // delete results[i].students;
-      // delete results[i].assignments;
+      delete results[i].students;
+      delete results[i].assignments;
     }
 
     return {
