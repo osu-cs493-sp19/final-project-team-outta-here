@@ -12,7 +12,8 @@ const CourseSchema = {
   number: { required: true },
   title: { required: true },
   instructor: { required: true },
-  students: {required: false }
+  students: {required: false },
+  instructorID: { required: true }
 };
 exports.CourseSchema = CourseSchema;
 
@@ -33,6 +34,12 @@ exports.getCoursesPage = async function (page) {
         .skip(offset)
         .limit(pageSize)
         .toArray();
+  // console.log("results: ", results);
+    //loop through each element to remove students and assignments... they're not supposed to be in the response
+    for(var i = 0; i < results.length; i++){
+      delete results[i].students;
+      delete results[i].assignments;
+    }
 
     return {
         courses: results,

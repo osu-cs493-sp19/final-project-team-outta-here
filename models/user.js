@@ -14,7 +14,8 @@ const { getDBReference } = require('../lib/mongo');
 const UserSchema = {
   name: { required: true },
   email: { required: true },
-  password: { required: true }
+  password: { required: true },
+  role: { required: true }
 };
 exports.UserSchema = UserSchema;
 

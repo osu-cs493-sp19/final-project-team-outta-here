@@ -9,8 +9,8 @@ const { CourseSchema,
         replaceCourseById,
         deleteCourseById } = require('../models/course');
 const stringify = require('csv-stringify');
-
-
+const { requireAuthentication } = require('../lib/auth');
+const { getUserById} = require('../models/user');
 const { validateAgainstSchema } = require('../lib/validation');
 
 /* 
@@ -45,6 +45,8 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res, next) => {
   try {
     const course = await getCourseByID(req.params.id);
+    delete course.assignments;
+    delete course.students;
     if (course) {
       res.status(200).send(course);
     } else {
@@ -94,7 +96,18 @@ router.get('/:id/roster', async (req, res, next) => {
 /*
  * Route to get list of students
  */
-router.get('/:id/students', async (req, res, next) => {
+router.get('/:id/students', requireAuthentication, async (req, res, next) => {
+  //authenticate the user first
+  const authenticatedUser = await getUserById(req.user);
+  const course = await getCourseByID(req.params.id);
+
+  //have to be an admin or the instructor of the class in order to get the course
+  if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
+    res.status(500).send({
+      error: "You have to be either an admin or the instructor of the course in order to get the course information."
+    });
+  }
+
   try {
     const course = await getCourseByID(req.params.id);
     if (course) {
@@ -139,7 +152,15 @@ router.get('/:id/assignments', async (req, res, next) => {
 /*
  * Route to create new courses 
  */
-router.post('/', async (req, res) => {
+router.post('/', requireAuthentication, async (req, res) => {
+  const authenticatedUser = await getUserById(req.user);
+
+  if(authenticatedUser.role != "admin"){
+    res.status(400).send({
+      error: "Only an admin can post a new course."
+    });
+  }
+
   if (validateAgainstSchema(req.body, CourseSchema)) {
     try {
       const id = await insertNewCourse(req.body);
@@ -150,7 +171,7 @@ router.post('/', async (req, res) => {
 	}
       });
     } catch (err) {
-      console.error(errr);
+      console.error(err);
       res.status(500).send({
         error: "Error inserting course into DB. Try again later. "
       });
@@ -166,8 +187,18 @@ router.post('/', async (req, res) => {
 /* 
  * Route to edit existing course 
  */
-router.put('/:id', async (req, res, next) => {
-  // Implement user authentication later 
+router.put('/:id', requireAuthentication, async (req, res, next) => {
+  //authenticate the user first
+  const authenticatedUser = await getUserById(req.user);
+  const course = await getCourseByID(req.params.id);
+
+  //have to be an admin or the instructor of the class in order to modify the course
+  if(!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))){
+    res.status(500).send({
+      error: "You have to be either an admin or the instructor of the course in order to modify the course."
+    });
+  }
+
   if (validateAgainstSchema(req.body, CourseSchema)) {
     try {
       const id = req.params.id;
