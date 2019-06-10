@@ -63,7 +63,7 @@ router.get('/:id', async (req, res, next) => {
 /*
  * Route to get roster of specific course
  */
-router.get('/:id/roster', async (req, res, next) => {
+router.get('/:id/roster', requireAuthentication, async (req, res, next) => {
   // Authenticate the user first 
   const authenticatedUser = await getUserById(req.user);
   const course = await getCourseByID(req.params.id);
@@ -114,7 +114,7 @@ router.get('/:id/students', requireAuthentication, async (req, res, next) => {
 
   //have to be an admin or the instructor of the class in order to get the course
   if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
-    res.status(500).send({
+    res.status(403).send({
       error: "You have to be either an admin or the instructor of the course in order to get the course information."
     });
   }
@@ -167,7 +167,7 @@ router.post('/', requireAuthentication, async (req, res) => {
   const authenticatedUser = await getUserById(req.user);
 
   if(authenticatedUser.role != "admin"){
-    res.status(400).send({
+    res.status(403).send({
       error: "Only an admin can post a new course."
     });
   }
