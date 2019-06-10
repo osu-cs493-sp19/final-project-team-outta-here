@@ -236,7 +236,7 @@ router.put('/:id', requireAuthentication, async (req, res, next) => {
 });
 
 /* 
- * Route to de;ete existing course 
+ * Route to delete existing course 
  */
 router.delete('/:id', async (req, res, next) => {
   const id = req.params.id;
