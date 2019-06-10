@@ -63,7 +63,18 @@ router.get('/:id', async (req, res, next) => {
 /*
  * Route to get roster of specific course
  */
-router.get('/:id/roster', async (req, res, next) => {
+router.get('/:id/roster', requireAuthentication, async (req, res, next) => {
+  // Authenticate the user first 
+  const authenticatedUser = await getUserById(req.user);
+  const course = await getCourseByID(req.params.id);
+  
+  // User must be either an admin or instructor of the class in order to get course roster
+  if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
+    res.status(403).send({
+      error: "You must be either an admin or course instructor in order to obtain the course roster."
+    });
+  }  
+
   try {
     const course = await getCourseByID(req.params.id);
     if (course) {
@@ -103,7 +114,7 @@ router.get('/:id/students', requireAuthentication, async (req, res, next) => {
 
   //have to be an admin or the instructor of the class in order to get the course
   if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
-    res.status(500).send({
+    res.status(403).send({
       error: "You have to be either an admin or the instructor of the course in order to get the course information."
     });
   }
@@ -156,7 +167,7 @@ router.post('/', requireAuthentication, async (req, res) => {
   const authenticatedUser = await getUserById(req.user);
 
   if(authenticatedUser.role != "admin"){
-    res.status(400).send({
+    res.status(403).send({
       error: "Only an admin can post a new course."
     });
   }
@@ -194,7 +205,7 @@ router.put('/:id', requireAuthentication, async (req, res, next) => {
 
   //have to be an admin or the instructor of the class in order to modify the course
   if(!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))){
-    res.status(500).send({
+    res.status(403).send({
       error: "You have to be either an admin or the instructor of the course in order to modify the course."
     });
   }
@@ -225,9 +236,20 @@ router.put('/:id', requireAuthentication, async (req, res, next) => {
 });
 
 /* 
- * Route to de;ete existing course 
+ * Route to delete existing course 
  */
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', requireAuthentication, async (req, res, next) => {
+  // Authenticate the user first 
+  const authenticatedUser = await getUserById(req.user);
+  const course = await getCourseByID(req.params.id);
+
+  // User must be an admin in order to delete the course
+  if (!(authenticatedUser.role == "admin")) {
+    res.status(403).send({
+      error: "Only admins can delete courses. " 
+    });
+  }
+ 
   const id = req.params.id;
   //todo: validation
   const deleteSuccessful = await deleteCourseById(id);
