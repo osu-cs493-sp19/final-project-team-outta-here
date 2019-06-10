@@ -64,6 +64,17 @@ router.get('/:id', async (req, res, next) => {
  * Route to get roster of specific course
  */
 router.get('/:id/roster', async (req, res, next) => {
+  // Authenticate the user first 
+  const authenticatedUser = await getUserById(req.user);
+  const course = await getCourseByID(req.params.id);
+  
+  // User must be either an admin or instructor of the class in order to get course roster
+  if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
+    res.status(403).send({
+      error: "You must be either an admin or course instructor in order to obtain the course roster."
+    });
+  }  
+
   try {
     const course = await getCourseByID(req.params.id);
     if (course) {
