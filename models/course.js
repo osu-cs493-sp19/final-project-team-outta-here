@@ -97,7 +97,7 @@ exports.deleteCourseById = async function (id) {
   return result.deletedCount > 0;
 }
 
-exports.insertStudentInCourse = async function (id, studentsList) {
+exports.updateEnrollmentByCourseId = async function (id, studentsList) {
   const db = getDBReference();
   const collection = db.collection('courses');
 
