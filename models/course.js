@@ -82,7 +82,7 @@ exports.replaceCourseById = async function (id, course) {
   return result.matchedCount > 0;
 };
    
-exports.deleteCourseById = async function (id){
+exports.deleteCourseById = async function (id) {
   const db = getDBReference();
   const collection = db.collection('courses');
   const result = await collection.deleteOne({
@@ -90,3 +90,12 @@ exports.deleteCourseById = async function (id){
   });
   return result.deletedCount > 0;
 }
+
+exports.insertStudentInCourse = async function (id, studentsList) {
+  const db = getDBReference();
+  const collection = db.collection('courses');
+  const result = await collection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { "students": studentsList }
+    
+

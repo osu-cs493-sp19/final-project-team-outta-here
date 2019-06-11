@@ -155,7 +155,16 @@ router.post('/:id/students', requireAuthentication, async (req, res, next) => {
   }
 
   try {
-    
+    const course = await getCourseByID(req.params.id);
+    if (course) {
+      var students = course.students;
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
+      error: "Unable to add student to class. Please try again later. "
+    });
+  }
 });
 
 
@@ -176,7 +185,7 @@ router.get('/:id/assignments', async (req, res, next) => {
   } catch (err) {
     console.error(err);
     res.status(500).send({
-      error: "Unable to fetch course.  Please try again later."
+      error: "Unable to fetch course. Please try again later."
     });
   }
 });
