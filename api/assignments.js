@@ -8,12 +8,50 @@ const { AssignmentSchema,
         getAssignmentByID,
         insertNewAssignment,
         replaceAssignmentById,
-        deleteAssignmentById
+        deleteAssignmentById,
+        getSubmissionsPage
       } = require('../models/assignment');
 const stringify = require('csv-stringify');
-
-
 const { validateAgainstSchema } = require('../lib/validation');
+const {
+  PhotoSchema,
+  saveImageFile,
+  getImageInfoById,
+  getPhotoById,
+  getImageDownloadStreamByFilename
+} = require('../models/assignment');
+
+const multer = require('multer');
+const crypto = require('crypto');
+const imageTypes = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png'
+};
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: `${__dirname}/uploads`,
+    filename: (req, file, callback) => {
+      const basename = crypto.pseudoRandomBytes(16).toString('hex');
+      const extension = imageTypes[file.mimetype];
+      callback(null, `${basename}.${extension}`);
+    }
+  }),
+  fileFilter: (req, file, callback) => {
+    callback(null, !!imageTypes[file.mimetype])
+  }
+});
+ function removeUploadedFile(file) {
+  return new Promise((resolve, reject) => {
+    fs.unlink(file.path, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
 
 
 router.get('/', async (req, res) => {
@@ -123,5 +161,64 @@ router.delete('/:id', async (req, res, next) => {
   }
 
 });
+router.post('/:id/submission', upload.single('image'), async (req, res, next) => {
+    if (req.file && req.body && req.body.assignmentId) {
+      try {
+        const image = {
+          path: req.file.path,
+          filename: req.file.filename,
+          contentType: req.file.mimetype,
+          assignmentId: req.body.assignmentId,
+          studentId: req.body.studentId,
+          timestamp: Date.now()
+        };
+        const id = await saveImageFile(image);
+        res.status(200).send({ id: id });
+      } catch (err) {
+        console.log(err);
+      }
+    } else {
+      res.status(400).send({
+        err: "Needs image and assignment id, and student id."
+      });
+    }
+});
 
+router.get('/:id/submission', async (req, res, next) => {
+  try {
+    const assignmentsPage = await getSubmissionsPage(parseInt(req.query.page) || 1);
+    assignmentsPage.links = {};
+
+    if (assignmentsPage.page < assignmentsPage.totalPages) {
+      assignmentsPage.links.nextPage = `/assignments?page=${assignmentsPage.page + 1}`;
+      assignmentsPage.links.lastPage = `/assignments?page=${assignmentsPage.totalPages}`;
+    }
+    if (assignmentsPage.page > 1) {
+      assignmentsPage.links.prevPage = `/assignments?page=${assignmentsPage.page - 1}`;
+      assignmentsPage.links.firstPage = '/assignments?page=1';
+    }
+
+    res.status(200).send(assignmentsPage);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
+      error: "Error fetching submissions list. Please try again later. "
+    });
+  }
+});
+
+router.get('/media/:filename', (req, res, next) => {
+  getImageDownloadStreamByFilename(req.params.filename)
+  .on('error', (err) =>{
+    if(err.code === 'ENOENT'){
+      next();
+    } else{
+      next(err);
+    }
+  })
+  .on('file',(file)=>{
+    res.status(200).type(file.metadata.contentType);
+  })
+  .pipe(res);
+});
 module.exports = router;
