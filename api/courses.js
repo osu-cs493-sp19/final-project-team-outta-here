@@ -46,8 +46,8 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res, next) => {
   try {
     const course = await getCourseByID(req.params.id);
-    //delete course.assignments;
-    //delete course.students;
+    delete course.assignments;
+    delete course.students;
     if (course) {
       res.status(200).send(course);
     } else {
@@ -75,7 +75,7 @@ router.get('/:id/roster', requireAuthentication, async (req, res, next) => {
       res.status(403).send({
         error: "You must be either an admin or course instructor in order to obtain the course roster."
       });
-    }  
+    } 
 
     if (course) {
       var roster = [];
@@ -145,8 +145,9 @@ router.post('/:id/students', requireAuthentication, async (req, res, next) => {
 //router.post('/:id/students', async (req, res, next) => {
   // Authenticate the user first 
   try {
-    const authenticatedUser = await getUserById(req.user);
+    //const authenticatedUser = await getUserById(req.user);
     const course = await getCourseByID(req.params.id);
+    const courseId = req.params.id;
 
     // Must be either an admin or instructor of the class in order to add student(s) to course
     if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
@@ -157,16 +158,12 @@ router.post('/:id/students', requireAuthentication, async (req, res, next) => {
 
     if (course) {
       var studentsList = course.students;
-
       var studentId = req.body.students;
 
       for (i=0; i<studentId.length; i++) {
         studentsList.push(studentId[i]);
       }
-
-      updateEnrollmentByCourseId(studentId, studentsList);
-
-      console.log("studentsList", studentsList);
+      updateEnrollmentByCourseId(courseId, studentsList);
       
       res.status(200).send({
         studentsList: studentsList
