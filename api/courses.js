@@ -7,6 +7,7 @@ const { CourseSchema,
         getCourseByID,
         insertNewCourse,
         replaceCourseById,
+        updateEnrollmentByCourseId,
         deleteCourseById } = require('../models/course');
 const stringify = require('csv-stringify');
 const { requireAuthentication } = require('../lib/auth');
@@ -55,7 +56,7 @@ router.get('/:id', async (req, res, next) => {
   } catch (err) {
     console.error(err);
     res.status(500).send({
-      error: "Unable to fetch course.  Please try again later."
+      error: "Unable to fetch course. Please try again later."
     });
   }
 });
@@ -64,19 +65,18 @@ router.get('/:id', async (req, res, next) => {
  * Route to get roster of specific course
  */
 router.get('/:id/roster', requireAuthentication, async (req, res, next) => {
-  // Authenticate the user first 
-  const authenticatedUser = await getUserById(req.user);
-  const course = await getCourseByID(req.params.id);
-  
-  // User must be either an admin or instructor of the class in order to get course roster
-  if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
-    res.status(403).send({
-      error: "You must be either an admin or course instructor in order to obtain the course roster."
-    });
-  }  
-
   try {
+    // Authenticate the user first 
+    const authenticatedUser = await getUserById(req.user);
     const course = await getCourseByID(req.params.id);
+  
+    // User must be either an admin or instructor of the class in order to get course roster
+    if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
+      res.status(403).send({
+        error: "You must be either an admin or course instructor in order to obtain the course roster."
+      });
+    } 
+
     if (course) {
       var roster = [];
       roster = course.students;
@@ -108,19 +108,18 @@ router.get('/:id/roster', requireAuthentication, async (req, res, next) => {
  * Route to get list of students
  */
 router.get('/:id/students', requireAuthentication, async (req, res, next) => {
-  //authenticate the user first
-  const authenticatedUser = await getUserById(req.user);
-  const course = await getCourseByID(req.params.id);
-
-  //have to be an admin or the instructor of the class in order to get the course
-  if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
-    res.status(403).send({
-      error: "You have to be either an admin or the instructor of the course in order to get the course information."
-    });
-  }
-
   try {
+    //authenticate the user first
+    const authenticatedUser = await getUserById(req.user);
     const course = await getCourseByID(req.params.id);
+
+    //have to be an admin or the instructor of the class in order to get the course
+    if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
+      res.status(403).send({
+        error: "You have to be either an admin or the instructor of the course in order to get the course information."
+      });
+    }
+
     if (course) {
       var students = course.students;
       const studentIDs = students.map(students => students.id);
@@ -137,6 +136,50 @@ router.get('/:id/students', requireAuthentication, async (req, res, next) => {
     });
   }
 });
+
+
+/* 
+ * Route to add student to list of students
+ */
+router.post('/:id/students', requireAuthentication, async (req, res, next) => {
+//router.post('/:id/students', async (req, res, next) => {
+  // Authenticate the user first 
+  try {
+    //const authenticatedUser = await getUserById(req.user);
+    const course = await getCourseByID(req.params.id);
+    const courseId = req.params.id;
+
+    // Must be either an admin or instructor of the class in order to add student(s) to course
+    if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
+      res.status(403).send({
+      error: "You must be either an admin or instructor of the course in order to add students to the enrollment list. "
+      });
+    }
+
+    if (course) {
+      var studentsList = course.students;
+      var studentId = req.body.students;
+
+      for (i=0; i<studentId.length; i++) {
+        studentsList.push(studentId[i]);
+      }
+      updateEnrollmentByCourseId(courseId, studentsList);
+      
+      res.status(200).send({
+        studentsList: studentsList
+      });
+    }
+    else {
+      next();
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
+      error: "Unable to add student to class. Please try again later. "
+    });
+  }
+});
+
 
 /*
  * Route to get list of assignments
@@ -155,7 +198,7 @@ router.get('/:id/assignments', async (req, res, next) => {
   } catch (err) {
     console.error(err);
     res.status(500).send({
-      error: "Unable to fetch course.  Please try again later."
+      error: "Unable to fetch course. Please try again later."
     });
   }
 });
@@ -199,39 +242,46 @@ router.post('/', requireAuthentication, async (req, res) => {
  * Route to edit existing course 
  */
 router.put('/:id', requireAuthentication, async (req, res, next) => {
-  //authenticate the user first
-  const authenticatedUser = await getUserById(req.user);
-  const course = await getCourseByID(req.params.id);
+  try {
+    //authenticate the user first
+    const authenticatedUser = await getUserById(req.user);
+    const course = await getCourseByID(req.params.id);
 
-  //have to be an admin or the instructor of the class in order to modify the course
-  if(!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))){
-    res.status(403).send({
-      error: "You have to be either an admin or the instructor of the course in order to modify the course."
-    });
-  }
-
-  if (validateAgainstSchema(req.body, CourseSchema)) {
-    try {
-      const id = req.params.id;
-      console.log("id:", id);
-      const updateSuccessful = await replaceCourseById(id, req.body);
-      if (updateSuccessful) {
-	res.status(200).send({
-	  links: {
-	    course: `/courses/${id}`
-	  }
-	});
-      }
-      else {
-	console.log("updateSuccessful failed, next()");
-	next();
-      }
-    } catch (err) {
-      console.error(err);
-      res.status(500).send({
-        error: "Unable to update specified course. Try again later. "
+    //have to be an admin or the instructor of the class in order to modify the course
+    if(!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))){
+      res.status(403).send({
+        error: "You have to be either an admin or the instructor of the course in order to modify the course."
       });
     }
+
+    if (validateAgainstSchema(req.body, CourseSchema)) {
+      try {
+        const id = req.params.id;
+        console.log("id:", id);
+        const updateSuccessful = await replaceCourseById(id, req.body);
+        if (updateSuccessful) {
+	  res.status(200).send({
+	    links: {
+	      course: `/courses/${id}`
+	    }
+	  });
+        }
+        else {
+	  console.log("updateSuccessful failed, next()");
+	  next();
+        }
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({
+          error: "Unable to update specified course. Try again later. "
+        });
+      } 
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
+      error: "Unable to find specified course. Try again later. "
+    });
   }
 });
 
@@ -239,28 +289,34 @@ router.put('/:id', requireAuthentication, async (req, res, next) => {
  * Route to delete existing course 
  */
 router.delete('/:id', requireAuthentication, async (req, res, next) => {
-  // Authenticate the user first 
-  const authenticatedUser = await getUserById(req.user);
-  const course = await getCourseByID(req.params.id);
+  try {
+    // Authenticate the user first 
+    const authenticatedUser = await getUserById(req.user);
+    const course = await getCourseByID(req.params.id);
 
-  // User must be an admin in order to delete the course
-  if (!(authenticatedUser.role == "admin")) {
-    res.status(403).send({
-      error: "Only admins can delete courses. " 
-    });
-  }
+    // User must be an admin in order to delete the course
+    if (!(authenticatedUser.role == "admin")) {
+      res.status(403).send({
+        error: "Only admins can delete courses. " 
+      });
+    }
  
-  const id = req.params.id;
-  //todo: validation
-  const deleteSuccessful = await deleteCourseById(id);
-  if(deleteSuccessful){
-    res.status(204).send();
-  }else{
+    const id = req.params.id;
+    //todo: validation
+    const deleteSuccessful = await deleteCourseById(id);
+    if(deleteSuccessful){
+      res.status(204).send();
+    } else {
+      res.status(500).send({
+        error: "Unable to delete specified course. Try again later. "
+      });
+    }
+  } catch (err) {
+    console.error(err);
     res.status(500).send({
-      error: "Unable to delete specified course. Try again later. "
+      error: "Unable to find specified course to delete. Try again later. "
     });
-  }
-
+  }  
 });
 
 module.exports = router;

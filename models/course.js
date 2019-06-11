@@ -74,15 +74,21 @@ exports.insertNewCourse = async function (course) {
 exports.replaceCourseById = async function (id, course) {
   course = extractValidFields(course, CourseSchema);
   const db = getDBReference();
-  const collection = db.collection('courses');
-  const result = await collection.replaceOne(
-    { _id: new ObjectId(id) },
-    course
-  );
-  return result.matchedCount > 0;
+  const collection = db.collection('courses'); 
+
+  if (!ObjectId.isValid(id)) {
+    return null;
+  }
+  else {
+    const result = await collection.replaceOne(
+      { _id: new ObjectId(id) },
+      course
+    );
+    return result.matchedCount > 0;
+  }
 };
    
-exports.deleteCourseById = async function (id){
+exports.deleteCourseById = async function (id) {
   const db = getDBReference();
   const collection = db.collection('courses');
   const result = await collection.deleteOne({
@@ -90,3 +96,20 @@ exports.deleteCourseById = async function (id){
   });
   return result.deletedCount > 0;
 }
+
+exports.updateEnrollmentByCourseId = async function (id, studentsList) {
+  const db = getDBReference();
+  const collection = db.collection('courses');
+
+  if (!ObjectId.isValid(id)) {
+    return null;
+  }
+  else {
+    const result = await collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { "students": studentsList }}
+    );
+    return result.matchedCount > 0;
+  }
+};    
+
