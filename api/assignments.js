@@ -8,8 +8,7 @@ const { AssignmentSchema,
         getAssignmentByID,
         insertNewAssignment,
         replaceAssignmentById,
-        deleteAssignmentById,
-        getSubmissionsPage
+        deleteAssignmentById
       } = require('../models/assignment');
 const stringify = require('csv-stringify');
 const { validateAgainstSchema } = require('../lib/validation');
@@ -186,25 +185,22 @@ router.post('/:id/submission', upload.single('image'), async (req, res, next) =>
 
 router.get('/:id/submission', async (req, res, next) => {
   try {
-    const assignmentsPage = await getSubmissionsPage(parseInt(req.query.page) || 1);
-    assignmentsPage.links = {};
-
-    if (assignmentsPage.page < assignmentsPage.totalPages) {
-      assignmentsPage.links.nextPage = `/assignments?page=${assignmentsPage.page + 1}`;
-      assignmentsPage.links.lastPage = `/assignments?page=${assignmentsPage.totalPages}`;
+      const image = await getImageInfoById(req.params.id);
+      if (image) {
+        const responseBody = {
+          _id: image._id,
+          url: `/media/images/${image.filename}`,
+          contentType: image.metadata.contentType,
+          assignmentId: image.metadata.assignmentId,
+          studentId: image.metadata.studentId
+        };
+        res.status(200).send(responseBody);
+      } else {
+        next();
+      }
+    } catch (err) {
+      next(err);
     }
-    if (assignmentsPage.page > 1) {
-      assignmentsPage.links.prevPage = `/assignments?page=${assignmentsPage.page - 1}`;
-      assignmentsPage.links.firstPage = '/assignments?page=1';
-    }
-
-    res.status(200).send(assignmentsPage);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({
-      error: "Error fetching submissions list. Please try again later. "
-    });
-  }
 });
 
 router.get('/media/:filename', (req, res, next) => {
@@ -215,7 +211,7 @@ router.get('/media/:filename', (req, res, next) => {
     } else{
       next(err);
     }
-  })
+  });
   .on('file',(file)=>{
     res.status(200).type(file.metadata.contentType);
   })
