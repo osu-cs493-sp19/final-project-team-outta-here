@@ -157,7 +157,8 @@ router.post('/:id/students', requireAuthentication, async (req, res, next) => {
   try {
     const course = await getCourseByID(req.params.id);
     if (course) {
-      var students = course.students;
+      var studentsList = course.students;
+      
     }
   } catch (err) {
     console.error(err);
