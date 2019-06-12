@@ -8,7 +8,8 @@ const { AssignmentSchema,
         getAssignmentByID,
         insertNewAssignment,
         replaceAssignmentById,
-        deleteAssignmentById
+        deleteAssignmentById,
+        getSubmissionsPage
       } = require('../models/assignment');
 const stringify = require('csv-stringify');
 const { requireAuthentication } = require('../lib/auth');
@@ -207,6 +208,11 @@ router.post('/:id/submission', requireAuthentication, upload.single('image'), as
           timestamp: Date.now()
         };
         const id = await saveImageFile(image);
+
+        var assignment = getAssignmentByID(req.body.assignmentId);
+        assignment.submissions= id;
+        const updateSuccessful = replaceAssignmentById(req.body.assignmentId, assignment);
+
         res.status(200).send({ id: id });
       } catch (err) {
         console.log(err);
@@ -250,7 +256,46 @@ router.get('/:id/submission', requireAuthentication, async (req, res, next) => {
       }
     } catch (err) {
       next(err);
+
+    const assignmentsPage = await getSubmissionsPage(parseInt(req.query.page) || 1, req.params.id);
+    assignmentsPage.links = {};
+
+    console.log("page: ", assignmentsPage.page);
+    console.log("total pages:", assignmentsPage.totalPages);
+    if (assignmentsPage.page < assignmentsPage.totalPages) {
+      assignmentsPage.links.nextPage = `/assignments?page=${assignmentsPage.page + 1}`;
+      assignmentsPage.links.lastPage = `/assignments?page=${assignmentsPage.totalPages}`;
     }
+    if (assignmentsPage.page > 1) {
+      assignmentsPage.links.prevPage = `/assignments?page=${assignmentsPage.page - 1}`;
+      assignmentsPage.links.firstPage = '/assignments?page=1';
+    }
+
+    res.status(200).send(assignmentsPage);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
+      error: "Error fetching assignments list. Please try again later. "
+    });
+  }
+  // try {
+  //     const image = await getImageInfoByAssignmentId(req.params.id);
+  //     console.log("image", image.length);
+  //     // if (image) {
+  //     //   const responseBody = {
+  //     //     _id: image._id,
+  //     //     url: `/media/images/${image.filename}`,
+  //     //     contentType: image.metadata.contentType,
+  //     //     assignmentId: image.metadata.assignmentId,
+  //     //     studentId: image.metadata.studentId
+  //     //   };
+  //       res.status(200).send("KDJSKL");
+  //     // } else {
+  //     //   next();
+  //     // }
+  //   } catch (err) {
+  //     next(err);
+  //   }
 });
 
 router.get('/media/:filename', (req, res, next) => {
