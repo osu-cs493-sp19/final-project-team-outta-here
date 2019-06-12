@@ -189,8 +189,9 @@ router.delete('/:id', requireAuthentication, async (req, res, next) => {
   });
 }
 });
-router.post('/:id/submission', upload.single('image'), async (req, res, next) => {
+router.post('/:id/submission', requireAuthentication, upload.single('image'), async (req, res, next) => {
   const authenticatedUser = await getUserById(req.user);
+
   const assignment = await getAssignmentByID(req.params.id);
   const course = await getCourseByID(assignment.courseId);
   console.log(course);
@@ -222,8 +223,18 @@ router.post('/:id/submission', upload.single('image'), async (req, res, next) =>
   }
 });
 
-router.get('/:id/submission', async (req, res, next) => {
+router.get('/:id/submission', requireAuthentication, async (req, res, next) => {
   try {
+      const authenticatedUser = await getUserById(req.user);
+      const assignment = await getAssignmentByID(req.params.id);
+      const course = await getCourseByID(assignment.courseId);
+
+      if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
+        res.status(403).send({
+	  error: "Only admin or course instructor can view submissions "
+        }); 
+      }
+
       const image = await getImageInfoById(req.params.id);
       if (image) {
         const responseBody = {
