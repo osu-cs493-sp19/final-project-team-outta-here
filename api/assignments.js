@@ -8,7 +8,8 @@ const { AssignmentSchema,
         getAssignmentByID,
         insertNewAssignment,
         replaceAssignmentById,
-        deleteAssignmentById
+        deleteAssignmentById,
+        getSubmissionsPage
       } = require('../models/assignment');
 const stringify = require('csv-stringify');
 const { validateAgainstSchema } = require('../lib/validation');
@@ -17,7 +18,8 @@ const {
   saveImageFile,
   getImageInfoById,
   getPhotoById,
-  getImageDownloadStreamByFilename
+  getImageDownloadStreamByFilename,
+  getImageInfoByAssignmentId
 } = require('../models/assignment');
 
 const multer = require('multer');
@@ -172,6 +174,11 @@ router.post('/:id/submission', upload.single('image'), async (req, res, next) =>
           timestamp: Date.now()
         };
         const id = await saveImageFile(image);
+
+        var assignment = getAssignmentByID(req.body.assignmentId);
+        assignment.submissions= id;
+        const updateSuccessful = replaceAssignmentById(req.body.assignmentId, assignment);
+
         res.status(200).send({ id: id });
       } catch (err) {
         console.log(err);
@@ -183,24 +190,48 @@ router.post('/:id/submission', upload.single('image'), async (req, res, next) =>
     }
 });
 
+//todo
 router.get('/:id/submission', async (req, res, next) => {
   try {
-      const image = await getImageInfoById(req.params.id);
-      if (image) {
-        const responseBody = {
-          _id: image._id,
-          url: `/media/images/${image.filename}`,
-          contentType: image.metadata.contentType,
-          assignmentId: image.metadata.assignmentId,
-          studentId: image.metadata.studentId
-        };
-        res.status(200).send(responseBody);
-      } else {
-        next();
-      }
-    } catch (err) {
-      next(err);
+    const assignmentsPage = await getSubmissionsPage(parseInt(req.query.page) || 1, req.params.id);
+    assignmentsPage.links = {};
+
+    console.log("page: ", assignmentsPage.page);
+    console.log("total pages:", assignmentsPage.totalPages);
+    if (assignmentsPage.page < assignmentsPage.totalPages) {
+      assignmentsPage.links.nextPage = `/assignments?page=${assignmentsPage.page + 1}`;
+      assignmentsPage.links.lastPage = `/assignments?page=${assignmentsPage.totalPages}`;
     }
+    if (assignmentsPage.page > 1) {
+      assignmentsPage.links.prevPage = `/assignments?page=${assignmentsPage.page - 1}`;
+      assignmentsPage.links.firstPage = '/assignments?page=1';
+    }
+
+    res.status(200).send(assignmentsPage);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
+      error: "Error fetching assignments list. Please try again later. "
+    });
+  }
+  // try {
+  //     const image = await getImageInfoByAssignmentId(req.params.id);
+  //     console.log("image", image.length);
+  //     // if (image) {
+  //     //   const responseBody = {
+  //     //     _id: image._id,
+  //     //     url: `/media/images/${image.filename}`,
+  //     //     contentType: image.metadata.contentType,
+  //     //     assignmentId: image.metadata.assignmentId,
+  //     //     studentId: image.metadata.studentId
+  //     //   };
+  //       res.status(200).send("KDJSKL");
+  //     // } else {
+  //     //   next();
+  //     // }
+  //   } catch (err) {
+  //     next(err);
+  //   }
 });
 
 router.get('/media/:filename', (req, res, next) => {
@@ -211,7 +242,7 @@ router.get('/media/:filename', (req, res, next) => {
     } else{
       next(err);
     }
-  });
+  })
   .on('file',(file)=>{
     res.status(200).type(file.metadata.contentType);
   })

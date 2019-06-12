@@ -125,15 +125,22 @@ exports.saveImageFile = function (image) {
   }
 };
 
-exports.getImageInfoByAssignmentId = async function (id) {
+getImageInfoByAssignmentId = async function (id, page) {
  const db = getDBReference();
  const bucket = new GridFSBucket(db, { bucketName: 'images' });
  if (!ObjectId.isValid(id)) {
    return null;
  } else {
+           
+        // .skip(offset)
+        // .limit(pageSize)
+        // .toArray();
    const results = await bucket.find({ "metadata.assignmentId" : id })
-     .toArray();
-   return results;
+     .sort({ _id: 1 });
+     const pageSize = 4;
+   const offset = (page - 1) * pageSize;
+   const results2 = results.skip(offset).limit(pageSize).toArray();
+   return results2;
  }
 };
 async function getPhotoById(id) {
@@ -158,26 +165,26 @@ function getImageDownloadStreamByFilename(filename) {
 }
 exports.getImageDownloadStreamByFilename = getImageDownloadStreamByFilename;
 
-exports.getSubmissionsPage = async function (page) {
-    const db = getDBReference();
+exports.getSubmissionsPage = async function (page, id) {
 
-    const collection = db.collection('images');
-    const count = await collection.countDocuments();
+  var results = await getImageInfoByAssignmentId(id, page);
+    const count = results.length;
+
 
     const pageSize = 4;
-    const lastPage = Math.ceil(count / pageSize);
+    console.log("count: ", count);
+    console.log("results.count:", results.count);
+    const lastPage = Math.ceil(results.length / pageSize);
     page = page < 1 ? 1 : page;
     page = page > lastPage ? lastPage : page;
     const offset = (page - 1) * pageSize;
 
-    const results = await collection.find({})
-        .sort({ _id: 1 })
-        .skip(offset)
-        .limit(pageSize)
-        .toArray();
+    for(var i = 0; i < results.length; i++){
+      results[i].url =`/assignments/media/${results[i].filename}`
+    }
 
     return {
-        assignments: results,
+        submissions: results,
         page: page,
         totalPages: lastPage,
         pageSize: pageSize,
