@@ -2,7 +2,7 @@
  * API Subroute for /assignment
  */
 const router = require('express').Router();
-
+const {getCourseByID, findStudent} = require('../models/course');
 const { AssignmentSchema,
         getAssignmentsPage,
         getAssignmentByID,
@@ -12,6 +12,7 @@ const { AssignmentSchema,
         getSubmissionsPage
       } = require('../models/assignment');
 const stringify = require('csv-stringify');
+const { requireAuthentication } = require('../lib/auth');
 const { validateAgainstSchema } = require('../lib/validation');
 const {
   PhotoSchema,
@@ -21,7 +22,7 @@ const {
   getImageDownloadStreamByFilename,
   getImageInfoByAssignmentId
 } = require('../models/assignment');
-
+const { getUserById} = require('../models/user');
 const multer = require('multer');
 const crypto = require('crypto');
 const imageTypes = {
@@ -83,8 +84,10 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res, next) => {
   try {
-    const assignment = await getAssignmentByID(req.params.id);
+    var assignment = await getAssignmentByID(req.params.id);
+    const submissions = await getImageInfoByAssignmentId(req.params.id);
     if (assignment) {
+      assignment.sub = submissions;
       res.status(200).send(assignment);
     } else {
       next();
@@ -98,16 +101,25 @@ router.get('/:id', async (req, res, next) => {
 });
 
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuthentication, async (req, res) => {
   if (validateAgainstSchema(req.body, AssignmentSchema)) {
     try {
-      const id = await insertNewAssignment(req.body);
-      res.status(200).send({
-        id: id,
-	links: {
-	  assignment: `/assignments/${id}`
-	}
-      });
+      const authenticatedUser = await getUserById(req.user);
+      const course = await getCourseByID(req.body.courseId);
+      console.log(course);
+      if(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user)){
+        const id = await insertNewAssignment(req.body);
+        res.status(200).send({
+          id: id,
+  	      links: {
+  	         assignment: `/assignments/${id}`
+  	      }
+        });
+      } else{
+        res.status(403).send({
+          error: "You must be either an admin or course instructor in order to post a new course."
+        });
+      }
     } catch (err) {
       console.error(errr);
       res.status(500).send({
@@ -122,10 +134,13 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.patch('/:id', async (req, res, next) => {
-  // Implement user authentication later
+router.patch('/:id', requireAuthentication, async (req, res, next) => {
   if (validateAgainstSchema(req.body, AssignmentSchema)) {
     try {
+      const authenticatedUser = await getUserById(req.user);
+      const course = await getCourseByID(req.body.courseId);
+      console.log(course);
+      if(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user)){
       const id = req.params.id;
       console.log("id:", id);
       const updateSuccessful = await replaceAssignmentById(id, req.body);
@@ -140,6 +155,11 @@ router.patch('/:id', async (req, res, next) => {
 	console.log("updateSuccessful failed, next()");
 	next();
       }
+    } else{
+      res.status(403).send({
+        error: "You must be either an admin or course instructor in order to post a new course."
+      });
+    }
     } catch (err) {
       console.error(err);
       res.status(500).send({
@@ -149,9 +169,13 @@ router.patch('/:id', async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', requireAuthentication, async (req, res, next) => {
+  const authenticatedUser = await getUserById(req.user);
+  const assignment = await getAssignmentByID(req.params.id);
+  const course = await getCourseByID(assignment.courseId);
+  console.log(course);
+  if(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user)){
   const id = req.params.id;
-  //todo: validation
   const deleteSuccessful = await deleteAssignmentById(id);
   if(deleteSuccessful){
     res.status(204).send();
@@ -160,9 +184,19 @@ router.delete('/:id', async (req, res, next) => {
       error: "Unable to delete specified assignment. Try again later. "
     });
   }
-
+} else{
+  res.status(403).send({
+    error: "You must be either an admin or course instructor in order to post a new course."
+  });
+}
 });
-router.post('/:id/submission', upload.single('image'), async (req, res, next) => {
+router.post('/:id/submission', requireAuthentication, upload.single('image'), async (req, res, next) => {
+  const authenticatedUser = await getUserById(req.user);
+
+  const assignment = await getAssignmentByID(req.params.id);
+  const course = await getCourseByID(assignment.courseId);
+  console.log(course);
+  if(authenticatedUser.role == "admin" || (authenticatedUser.role == "student" && findStudent(assignment.courseId, req.user))){
     if (req.file && req.body && req.body.assignmentId) {
       try {
         const image = {
@@ -188,11 +222,41 @@ router.post('/:id/submission', upload.single('image'), async (req, res, next) =>
         err: "Needs image and assignment id, and student id."
       });
     }
+  } else{
+    res.status(403).send({
+      error: "You must be either an admin or course instructor in order to post a new course."
+    });
+  }
 });
 
-//todo
-router.get('/:id/submission', async (req, res, next) => {
+router.get('/:id/submission', requireAuthentication, async (req, res, next) => {
   try {
+      const authenticatedUser = await getUserById(req.user);
+      const assignment = await getAssignmentByID(req.params.id);
+      const course = await getCourseByID(assignment.courseId);
+
+      if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
+        res.status(403).send({
+	  error: "Only admin or course instructor can view submissions "
+        }); 
+      }
+
+      const image = await getImageInfoById(req.params.id);
+      if (image) {
+        const responseBody = {
+          _id: image._id,
+          url: `/media/images/${image.filename}`,
+          contentType: image.metadata.contentType,
+          assignmentId: image.metadata.assignmentId,
+          studentId: image.metadata.studentId
+        };
+        res.status(200).send(responseBody);
+      } else {
+        next();
+      }
+    } catch (err) {
+      next(err);
+
     const assignmentsPage = await getSubmissionsPage(parseInt(req.query.page) || 1, req.params.id);
     assignmentsPage.links = {};
 

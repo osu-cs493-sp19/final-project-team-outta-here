@@ -1,5 +1,5 @@
-/* 
- * Course Schema and data accessor methods 
+/*
+ * Course Schema and data accessor methods
  */
 
 const { ObjectId } = require('mongodb');
@@ -65,7 +65,7 @@ exports.getCourseByID = async function (id) {
 
 exports.insertNewCourse = async function (course) {
   course = extractValidFields(course, CourseSchema);
-  const db = getDBReference(); 
+  const db = getDBReference();
   const collection = db.collection('courses');
   const result = await collection.insertOne(course);
   return result.insertedId;
@@ -74,7 +74,7 @@ exports.insertNewCourse = async function (course) {
 exports.replaceCourseById = async function (id, course) {
   course = extractValidFields(course, CourseSchema);
   const db = getDBReference();
-  const collection = db.collection('courses'); 
+  const collection = db.collection('courses');
 
   if (!ObjectId.isValid(id)) {
     return null;
@@ -87,7 +87,7 @@ exports.replaceCourseById = async function (id, course) {
     return result.matchedCount > 0;
   }
 };
-   
+
 exports.deleteCourseById = async function (id) {
   const db = getDBReference();
   const collection = db.collection('courses');
@@ -111,5 +111,14 @@ exports.updateEnrollmentByCourseId = async function (id, studentsList) {
     );
     return result.matchedCount > 0;
   }
-};    
-
+};
+exports.findStudent = async function (courseid, studentId){
+  const course = await getCourseByID(courseid);
+  var found = false;
+  for(i =0; i < course.students.length; i++){
+    if(course.students[i].id == studentId){
+      found = true;
+    }
+  }
+  return found;
+}
