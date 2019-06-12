@@ -193,7 +193,7 @@ router.delete('/:id', requireAuthentication, async (req, res, next) => {
 router.post('/:id/submission', requireAuthentication, upload.single('image'), async (req, res, next) => {
   const authenticatedUser = await getUserById(req.user);
 
-  const assignment = await getAssignmentByID(req.params.id);
+  var assignment = await getAssignmentByID(req.params.id);
   const course = await getCourseByID(assignment.courseId);
   console.log(course);
   if(authenticatedUser.role == "admin" || (authenticatedUser.role == "student" && findStudent(assignment.courseId, req.user))){
@@ -209,7 +209,6 @@ router.post('/:id/submission', requireAuthentication, upload.single('image'), as
         };
         const id = await saveImageFile(image);
 
-        var assignment = getAssignmentByID(req.body.assignmentId);
         assignment.submissions= id;
         const updateSuccessful = replaceAssignmentById(req.body.assignmentId, assignment);
 
@@ -240,22 +239,6 @@ router.get('/:id/submission', requireAuthentication, async (req, res, next) => {
 	  error: "Only admin or course instructor can view submissions "
         }); 
       }
-
-      const image = await getImageInfoById(req.params.id);
-      if (image) {
-        const responseBody = {
-          _id: image._id,
-          url: `/media/images/${image.filename}`,
-          contentType: image.metadata.contentType,
-          assignmentId: image.metadata.assignmentId,
-          studentId: image.metadata.studentId
-        };
-        res.status(200).send(responseBody);
-      } else {
-        next();
-      }
-    } catch (err) {
-      next(err);
 
     const assignmentsPage = await getSubmissionsPage(parseInt(req.query.page) || 1, req.params.id);
     assignmentsPage.links = {};
