@@ -108,6 +108,7 @@ router.get('/:id/roster', requireAuthentication, async (req, res, next) => {
  * Route to get list of students
  */
 router.get('/:id/students', requireAuthentication, async (req, res, next) => {
+//router.get('/:id/students', async (req, res, next) => {
   try {
     //authenticate the user first
     const authenticatedUser = await getUserById(req.user);
@@ -118,7 +119,7 @@ router.get('/:id/students', requireAuthentication, async (req, res, next) => {
       res.status(403).send({
         error: "You have to be either an admin or the instructor of the course in order to get the course information."
       });
-    }
+    } 
 
     if (course) {
       var students = course.students;
@@ -145,16 +146,16 @@ router.post('/:id/students', requireAuthentication, async (req, res, next) => {
 //router.post('/:id/students', async (req, res, next) => {
   // Authenticate the user first 
   try {
-    //const authenticatedUser = await getUserById(req.user);
+    const authenticatedUser = await getUserById(req.user);
     const course = await getCourseByID(req.params.id);
     const courseId = req.params.id;
 
     // Must be either an admin or instructor of the class in order to add student(s) to course
-    if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
+   if (!(authenticatedUser.role == "admin" || (authenticatedUser.role == "instructor" && course.instructorID == req.user))) {
       res.status(403).send({
       error: "You must be either an admin or instructor of the course in order to add students to the enrollment list. "
       });
-    }
+    } 
 
     if (course) {
       var studentsList = course.students;
